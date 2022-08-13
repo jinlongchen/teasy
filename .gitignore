@@ -1,0 +1,15 @@
+.idea/
+.vscode/
+
+.DS_Store
+
+tools/
+tmp/
+test/
+
+/build/Dockerfile
+/deployment/*
+
+/app/app
+
+
