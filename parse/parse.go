@@ -470,7 +470,7 @@ decls:
 			t.nextNonSpace()
 			pipe.Decl = append(pipe.Decl, t.newVariable(v.pos, v.val))
 			t.vars = append(t.vars, v.val)
-		case next.typ == itemChar && next.val == ",":
+		case next.typ == itemComma:
 			t.nextNonSpace()
 			pipe.Decl = append(pipe.Decl, t.newVariable(v.pos, v.val))
 			t.vars = append(t.vars, v.val)
@@ -817,7 +817,7 @@ func (t *Tree) arguments() []Node {
 		args = append(args, node)
 
 		switch next := t.nextNonSpace(); {
-		case next.typ == itemChar && next.val == ",":
+		case next.typ == itemComma:
 		default:
 			t.backup()
 			return args

@@ -59,7 +59,8 @@ const (
 	itemString       // quoted string (includes quotes)
 	itemText         // plain text
 	itemVariable     // variable starting with '$', such as '$' or  '$1' or '$hello'
-	itemPipeVariable // '#' variable from pipeline
+	itemPipeVariable // '?' variable from pipeline
+	itemComma        // ','
 	// Keywords appear after all the rest.
 	itemKeyword  // used only to delimit the keywords
 	itemBlock    // block keyword
@@ -412,13 +413,15 @@ func lexInsideAction(l *lexer) stateFn {
 		return l.emit(itemDeclare)
 	case r == '|':
 		return l.emit(itemPipe)
+	case r == ',':
+		return l.emit(itemComma)
 	case r == '"':
 		return lexQuote
 	case r == '`':
 		return lexRawQuote
 	case r == '$':
 		return lexVariable
-	case r == '#':
+	case r == '?':
 		return lexPipeVariable
 	case r == '\'':
 		return lexChar
