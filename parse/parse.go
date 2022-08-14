@@ -451,7 +451,7 @@ func (t *Tree) continueControl(pos Pos, line int) Node {
 // Pipeline:
 //
 //	declarations? command ('|' command)*
-func (t *Tree) pipeline(context string, end itemType) (pipe *PipeNode) {
+func (t *Tree) pipeline(context string, end ...itemType) (pipe *PipeNode) {
 	token := t.peekNonSpace()
 	pipe = t.newPipeline(token.pos, token.line, nil)
 	// Are there declarations or assignments?
@@ -490,17 +490,21 @@ decls:
 			t.backup2(v)
 		}
 	}
+
 	for {
 		switch token := t.nextNonSpace(); token.typ {
-		case end:
-			// At this point, the pipeline is complete
-			t.checkPipeline(pipe, context)
-			return
 		case itemBool, itemCharConstant, itemComplex, itemDot, itemField, itemIdentifier,
 			itemNumber, itemNil, itemRawString, itemString, itemVariable, itemPipeVariable, itemLeftParen:
 			t.backup()
 			pipe.append(t.command())
 		default:
+			for _, et := range end {
+				if et == token.typ {
+					// At this point, the pipeline is complete
+					t.checkPipeline(pipe, context)
+					return
+				}
+			}
 			t.unexpected(token, context)
 		}
 	}
