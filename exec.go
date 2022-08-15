@@ -878,11 +878,19 @@ func (s *state) validateType(value reflect.Value, typ reflect.Type) reflect.Valu
 			if !value.IsValid() {
 				s.errorf("dereference of nil pointer of type %s", typ)
 			}
+			return value
 		case reflect.PointerTo(value.Type()).AssignableTo(typ) && value.CanAddr():
-			value = value.Addr()
-		default:
-			s.errorf("wrong type for value; expected %s; got %s", typ, value.Type())
+			return value.Addr()
 		}
+		switch typ.Kind() {
+		case reflect.Complex64, reflect.Complex128, reflect.Float32, reflect.Float64, reflect.Int,
+			reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8,
+			reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			if value.CanConvert(typ) {
+				return value.Convert(typ)
+			}
+		}
+		s.errorf("wrong type for value; expected %s; got %s", typ, value.Type())
 	}
 	return value
 }

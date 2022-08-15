@@ -711,6 +711,8 @@ func (t *Tree) command() *CommandNode {
 			}
 			t.expect(itemRightParen, "call expression")
 			continue
+		case itemComma:
+			t.backup()
 		default:
 			t.unexpected(token, "operand")
 		}
@@ -812,20 +814,35 @@ func (t *Tree) term() Node {
 func (t *Tree) arguments() []Node {
 	var args []Node
 	for {
-		peek := t.peekNonSpace()
-		if peek.typ == itemRightParen {
+		switch peek := t.peekNonSpace(); peek.typ {
+		case itemRightParen:
 			return args
+		case itemComma:
+			t.next()
+			continue
 		}
 
 		node := t.operand()
-		args = append(args, node)
 
-		switch next := t.nextNonSpace(); {
-		case next.typ == itemComma:
-		default:
+		switch peek := t.nextNonSpace(); peek.typ {
+		case itemLeftParen:
+			pipe := t.newPipeline(node.Position(), peek.line, nil)
+			cmd := t.newCommand(node.Position())
+			cmd.append(node)
+			cmdArgs := t.arguments()
+			for _, arg := range cmdArgs {
+				cmd.append(arg)
+			}
+			t.expect(itemRightParen, "call expression")
+			pipe.append(cmd)
+			node = pipe
+		case itemRightParen:
 			t.backup()
-			return args
+		case itemComma:
+		default:
+			t.unexpected(peek, "arguments")
 		}
+		args = append(args, node)
 	}
 }
 
