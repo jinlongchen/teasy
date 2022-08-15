@@ -59,7 +59,7 @@ const (
 	itemString       // quoted string (includes quotes)
 	itemText         // plain text
 	itemVariable     // variable starting with '$', such as '$' or  '$1' or '$hello'
-	itemPipeVariable // variable from pipeline starting with '#', such as '#' or  '#0' or  '#1'
+	itemPipeVariable // '#' variable from pipeline
 	// Keywords appear after all the rest.
 	itemKeyword  // used only to delimit the keywords
 	itemBlock    // block keyword
@@ -527,18 +527,9 @@ func lexPipeVariable(l *lexer) stateFn {
 	if l.atTerminator() { // Nothing interesting follows -> "#".
 		return l.emit(itemPipeVariable)
 	}
-	var r rune
-	for {
-		r = l.next()
-		if !unicode.IsDigit(r) {
-			l.backup()
-			break
-		}
-	}
-	if !l.atTerminator() {
-		return l.errorf("bad character %#U", r)
-	}
-	return l.emit(itemPipeVariable)
+	r := l.next()
+	l.backup()
+	return l.errorf("bad character %#U", r)
 }
 
 // lexFieldOrVariable scans a field or variable: [.$]Alphanumeric.
