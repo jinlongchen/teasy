@@ -814,34 +814,32 @@ func (t *Tree) term() Node {
 func (t *Tree) arguments() []Node {
 	var args []Node
 	for {
-		switch peek := t.peekNonSpace(); peek.typ {
-		case itemRightParen:
-			return args
-		case itemComma:
-			t.next()
-			continue
-		}
+		var node Node
 
-		node := t.operand()
-
-		switch peek := t.nextNonSpace(); peek.typ {
-		case itemLeftParen:
-			pipe := t.newPipeline(node.Position(), peek.line, nil)
-			cmd := t.newCommand(node.Position())
-			cmd.append(node)
-			cmdArgs := t.arguments()
-			for _, arg := range cmdArgs {
-				cmd.append(arg)
-			}
-			t.expect(itemRightParen, "call expression")
-			pipe.append(cmd)
-			node = pipe
+		switch token := t.nextNonSpace(); token.typ {
 		case itemRightParen:
 			t.backup()
+			return args
 		case itemComma:
+			continue
+		case itemIdentifier:
+			checkFunc := t.Mode&SkipFuncCheck == 0
+			if checkFunc && !t.hasFunction(token.val) {
+				t.errorf("function %q not defined", token.val)
+			}
+			switch next := t.peekNonSpace(); next.typ {
+			case itemLeftParen:
+				t.backup2(token)
+				node = t.pipeline("parenthesized pipeline", itemComma, itemRightParen)
+				t.backup()
+			default:
+				node = t.newIdentifier(token.val, token.pos)
+			}
 		default:
-			t.unexpected(peek, "arguments")
+			t.backup()
+			node = t.operand()
 		}
+
 		args = append(args, node)
 	}
 }
