@@ -136,12 +136,12 @@ func findSymbol(name string, tmpl *Template) (v reflect.Value, isBuiltin, ok boo
 	if tmpl != nil && tmpl.common != nil {
 		tmpl.muSymbols.RLock()
 		defer tmpl.muSymbols.RUnlock()
-		if fn := tmpl.execSymbols[name]; fn.IsValid() {
-			return fn, false, true
+		if symbol := tmpl.execSymbols[name]; symbol.IsValid() {
+			return symbol, false, true
 		}
 	}
-	if fn := builtinSymbols()[name]; fn.IsValid() {
-		return fn, true, true
+	if symbol := builtinSymbols()[name]; symbol.IsValid() {
+		return symbol, true, true
 	}
 	return reflect.Value{}, false, false
 }

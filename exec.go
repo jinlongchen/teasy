@@ -634,16 +634,8 @@ func (s *state) evalIdentifierNode(dot reflect.Value, node *parse.IdentifierNode
 		}
 		return symbol
 	}
-	return s.evalFunction(dot, node, cmd, args, final)
-}
-func (s *state) evalFunction(dot reflect.Value, node *parse.IdentifierNode, cmd parse.Node, args []parse.Node, final reflect.Value) reflect.Value {
-	s.at(node)
-	name := node.Ident
-	function, isBuiltin, ok := findSymbol(name, s.tmpl)
-	if !ok {
-		s.errorf("%q is not a defined function", name)
-	}
-	return s.evalCall(dot, function, isBuiltin, cmd, name, args, final)
+	s.errorf("error calling %s", name)
+	panic("not reached")
 }
 
 // evalField evaluates an expression like (.Field) or (.Field arg1 arg2).
