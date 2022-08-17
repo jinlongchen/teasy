@@ -62,28 +62,28 @@ func builtins() SymbolMap {
 	}
 }
 
-var builtinFuncsOnce struct {
+var builtinSymbolsOnce struct {
 	sync.Once
 	v map[string]reflect.Value
 }
 
-// builtinFuncsOnce lazily computes & caches the builtinFuncs map.
+// builtinSymbolsOnce lazily computes & caches the builtinSymbols map.
 // TODO: revert this back to a global map once golang.org/issue/2559 is fixed.
-func builtinFuncs() map[string]reflect.Value {
-	builtinFuncsOnce.Do(func() {
-		builtinFuncsOnce.v = createValueFuncs(builtins())
+func builtinSymbols() map[string]reflect.Value {
+	builtinSymbolsOnce.Do(func() {
+		builtinSymbolsOnce.v = createValueSymbols(builtins())
 	})
-	return builtinFuncsOnce.v
+	return builtinSymbolsOnce.v
 }
 
-// createValueFuncs turns a FuncMap into a map[string]reflect.Value
-func createValueFuncs(funcMap SymbolMap) map[string]reflect.Value {
+// createValueSymbols turns a FuncMap into a map[string]reflect.Value
+func createValueSymbols(funcMap SymbolMap) map[string]reflect.Value {
 	m := make(map[string]reflect.Value)
 	addValueSymbols(m, funcMap)
 	return m
 }
 
-// addValueFuncs adds to values the functions in funcs, converting them to reflect.Values.
+// addValueSymbols adds to values the symbols in SymbolMap, converting them to reflect.Values.
 func addValueSymbols(out map[string]reflect.Value, in SymbolMap) {
 	for name, fn := range in {
 		if !goodName(name) {
@@ -94,8 +94,8 @@ func addValueSymbols(out map[string]reflect.Value, in SymbolMap) {
 	}
 }
 
-// addSymbols adds to values the functions in funcs. It does no checking of the input -
-// call addValueFuncs first.
+// addSymbols adds to values the symbols in SymbolMap. It does no checking of the input -
+// call addValueSymbols first.
 func addSymbols(out, in SymbolMap) {
 	for name, fn := range in {
 		out[name] = fn
@@ -140,7 +140,7 @@ func findSymbol(name string, tmpl *Template) (v reflect.Value, isBuiltin, ok boo
 			return fn, false, true
 		}
 	}
-	if fn := builtinFuncs()[name]; fn.IsValid() {
+	if fn := builtinSymbols()[name]; fn.IsValid() {
 		return fn, true, true
 	}
 	return reflect.Value{}, false, false
