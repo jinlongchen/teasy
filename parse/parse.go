@@ -838,6 +838,9 @@ func (t *Tree) arguments() []Node {
 		default:
 			t.backup()
 			node = t.operand()
+			if node == nil {
+				t.errorf("unexpected %s", token)
+			}
 		}
 
 		args = append(args, node)
