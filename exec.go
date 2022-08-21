@@ -265,7 +265,7 @@ func (s *state) walk(dot reflect.Value, node parse.Node) {
 	case *parse.ActionNode:
 		// Do not pop variables so they persist until next end.
 		// Also, if the action declares variables, don't print the result.
-		val := s.evalPipeline(dot, node.Pipe)
+		val := s.evalPipeline(dot, node.Pipe, missingVal)
 		if len(node.Pipe.Decl) == 0 {
 			s.printValue(node, val)
 		}
@@ -299,7 +299,7 @@ func (s *state) walk(dot reflect.Value, node parse.Node) {
 // are identical in behavior except that 'with' sets dot.
 func (s *state) walkIfOrWith(typ parse.NodeType, dot reflect.Value, pipe *parse.PipeNode, list, elseList *parse.ListNode) {
 	defer s.pop(s.mark())
-	val := s.evalPipeline(dot, pipe)
+	val := s.evalPipeline(dot, pipe, missingVal)
 	truth, ok := isTrue(indirectInterface(val))
 	if !ok {
 		s.errorf("if/with can't use %v", val)
@@ -358,7 +358,7 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) {
 		}
 	}()
 	defer s.pop(s.mark())
-	val, _ := indirect(s.evalPipeline(dot, r.Pipe))
+	val, _ := indirect(s.evalPipeline(dot, r.Pipe, missingVal))
 	// mark top of stack before any variables in the body are pushed.
 	mark := s.mark()
 	oneIteration := func(index, elem reflect.Value) {
@@ -445,7 +445,7 @@ func (s *state) walkTemplate(dot reflect.Value, t *parse.TemplateNode) {
 		s.errorf("exceeded maximum template depth (%v)", maxExecDepth)
 	}
 	// Variables declared by the pipeline persist.
-	dot = s.evalPipeline(dot, t.Pipe)
+	dot = s.evalPipeline(dot, t.Pipe, missingVal)
 	newState := *s
 	newState.depth++
 	newState.tmpl = tmpl
@@ -462,12 +462,12 @@ func (s *state) walkTemplate(dot reflect.Value, t *parse.TemplateNode) {
 // pipeline has a variable declaration, the variable will be pushed on the
 // stack. Callers should therefore pop the stack after they are finished
 // executing commands depending on the pipeline value.
-func (s *state) evalPipeline(dot reflect.Value, pipe *parse.PipeNode) (value reflect.Value) {
+func (s *state) evalPipeline(dot reflect.Value, pipe *parse.PipeNode, final reflect.Value) (value reflect.Value) {
 	if pipe == nil {
 		return
 	}
 	s.at(pipe)
-	value = missingVal
+	value = final
 	for _, cmd := range pipe.Cmds {
 		value = s.evalCommand(dot, cmd, value) // previous value is this one's final arg.
 		// If the object has type interface{}, dig down one level to the thing inside.
@@ -504,21 +504,26 @@ func (s *state) evalCommand(dot reflect.Value, cmd *parse.CommandNode, final ref
 	case *parse.PipeNode:
 		// // Parenthesized pipeline. The arguments are all inside the pipeline; final must be absent.
 		s.notAFunction(cmd.Args, final)
-		return s.evalPipeline(dot, n)
+		return s.evalPipeline(dot, n, final)
 	case *parse.VariableNode:
 		return s.evalVariableNode(dot, n, cmd.Args, final)
 	case *parse.PipeVariableNode:
 		return s.evalPipeVariableNode(dot, n, cmd.Args, final)
 	}
 	s.at(firstWord)
-	s.notAFunction(cmd.Args, final)
+	// s.notAFunction(cmd.Args, final)
+	if len(cmd.Args) > 1 {
+		s.errorf("can't give argument to non-function %s", cmd.Args[0])
+	}
+
 	switch word := firstWord.(type) {
 	case *parse.BoolNode:
 		return reflect.ValueOf(word.True)
 	case *parse.DotNode:
 		return dot
 	case *parse.NilNode:
-		s.errorf("nil is not a command")
+		// s.errorf("nil is not a command")
+		return reflect.ValueOf(nil)
 	case *parse.NumberNode:
 		return s.idealConstant(word)
 	case *parse.StringNode:
@@ -912,7 +917,7 @@ func (s *state) evalArg(dot reflect.Value, typ reflect.Type, n parse.Node, final
 	case *parse.PipeVariableNode:
 		return s.validateType(s.evalPipeVariableNode(dot, arg, nil, final), typ)
 	case *parse.PipeNode:
-		return s.validateType(s.evalPipeline(dot, arg), typ)
+		return s.validateType(s.evalPipeline(dot, arg, final), typ)
 	case *parse.IdentifierNode:
 		return s.validateType(s.evalIdentifierNode(dot, arg, arg, nil, final), typ)
 	case *parse.ChainNode:
@@ -1030,7 +1035,7 @@ func (s *state) evalEmptyInterface(dot reflect.Value, n parse.Node) reflect.Valu
 	case *parse.VariableNode:
 		return s.evalVariableNode(dot, n, nil, missingVal)
 	case *parse.PipeNode:
-		return s.evalPipeline(dot, n)
+		return s.evalPipeline(dot, n, missingVal)
 	}
 	s.errorf("can't handle assignment of %s to empty interface argument", n)
 	panic("not reached")
