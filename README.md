@@ -113,3 +113,36 @@ symbols := SymbolMap{
 text = `{{ obj.GetVal1() }}` // abc
 text = `{{ obj.Value1 }}` // abc
 ```
+4. `Important`, Behaviors that differ from the Go library
+
+The following template code will panic in the Go library:
+```go
+text = `{{ nil }}` // panic
+```
+But this template code won't panic in the Go library:
+```go
+type T struct {
+    Empty0 any // nil
+}
+tmpl.Execute(b, &T{})
+
+text = `{{ .Empty0 }}` // result is "<no value>"
+```
+
+So, I standardized them to be the same, the flow template codes are now returning <no value>
+```go
+text = `{{ nil }}` // <no value>
+```
+```go
+text = `{{ .Empty0 }}` // <no value>
+```
+```go
+text = "{{(nil).True}}" // <no value>
+```
+```go
+text = "{{$x := nil}}{{$x.anything}}" // <no value>
+```
+the flow template code is now returning empty string:
+```go
+text = "{{if nil}}TRUE{{end}}" // ""
+```
