@@ -71,8 +71,7 @@ text = `{{ "abc"| concat ? | upper ? }}` // ABC
 text = `{{ "abc"| concat(?) | upper(?) }}` // ABC
 ```
 
-3. Replace `Funcs` with `Symbols`
-  in `Symbols` map, you can use variables, functions
+3. Replace `Funcs` with `Symbols`, you can use variables, functions
 ```go
 type Object struct {
   Value1 string
