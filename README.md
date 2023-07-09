@@ -129,7 +129,7 @@ tmpl.Execute(b, &T{})
 text = `{{ .Empty0 }}` // result is "<no value>"
 ```
 
-So, I standardized them to be the same, the flow template codes are now returning <no value>
+So, I standardized them to be the same, the flow template codes are now returning `<no value>`
 ```go
 text = `{{ nil }}` // <no value>
 ```
